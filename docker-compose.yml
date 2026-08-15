@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  afriread-recommender:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: afriread_recommender_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./docs:/app/docs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
