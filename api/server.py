@@ -433,6 +433,32 @@ def get_book_cover(book_id: str):
         
     return {"cover_url": f"https://covers.openlibrary.org/b/id/{book_id}-M.jpg"}
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+UI_DIST_DIR = os.path.join(PROJECT_DIR, "ui", "dist")
+
+if os.path.exists(UI_DIST_DIR):
+    assets_dir = os.path.join(UI_DIST_DIR, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+        
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_frontend(full_path: str):
+        # Allow API routes to be handled by FastAPI
+        if full_path.startswith("api"):
+            raise HTTPException(status_code=404, detail="API route not found")
+            
+        target_file = os.path.join(UI_DIST_DIR, full_path)
+        if os.path.exists(target_file) and os.path.isfile(target_file):
+            return FileResponse(target_file)
+            
+        index_file = os.path.join(UI_DIST_DIR, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+            
+        return {"detail": "Frontend build not found. Run npm run build inside project/ui."}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
