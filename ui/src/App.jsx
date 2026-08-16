@@ -199,14 +199,14 @@ export default function App() {
       <header className="app-header">
         <div className="logo-container" onClick={() => setActiveTab('discover')}>
           <div className="logo-icon">
-            <BookOpen size={22} color="#090d16" />
+            <BookOpen size={20} color="#090d16" />
           </div>
           <div>
-            <h1 className="brand-title" style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            <h1 className="brand-title" style={{ fontSize: '1.2rem', fontWeight: 800 }}>
               AfriRead <span style={{ color: 'var(--accent-gold)' }}>AI</span>
             </h1>
-            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              Culturally Aware Literary Recommender
+            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+              Culturally Aware Recommender
             </p>
           </div>
         </div>
@@ -217,25 +217,25 @@ export default function App() {
             className={`nav-btn ${activeTab === 'discover' ? 'active' : ''}`}
             onClick={() => setActiveTab('discover')}
           >
-            <Sparkles size={16} /> Discover
+            <Sparkles size={15} /> Discover
           </button>
           <button 
             className={`nav-btn ${activeTab === 'search' ? 'active' : ''}`}
             onClick={() => setActiveTab('search')}
           >
-            <Search size={16} /> Search Catalog
+            <Search size={15} /> Search
           </button>
           <button 
             className={`nav-btn ${activeTab === 'radar' ? 'active' : ''}`}
             onClick={() => setActiveTab('radar')}
           >
-            <Compass size={16} /> Cultural Radar
+            <Compass size={15} /> Radar
           </button>
           <button 
             className={`nav-btn ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
-            <History size={16} /> History ({session?.history?.length || 0})
+            <History size={15} /> History ({session?.history?.length || 0})
           </button>
         </nav>
 
@@ -246,12 +246,12 @@ export default function App() {
           onClick={() => setShowOnboardModal(true)}
           title="Click to switch cultural origin"
         >
-          <Globe size={16} color="var(--accent-cyan)" />
+          <Globe size={15} color="var(--accent-cyan)" />
           <span>
-            <strong>{session?.country || 'Select Country'}</strong>
+            <strong>{session?.country || 'Select'}</strong>
           </span>
-          <span style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', marginLeft: '0.25rem' }}>
-            Change ▾
+          <span style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', marginLeft: '0.15rem' }}>
+            ▾
           </span>
         </div>
       </header>
@@ -261,15 +261,15 @@ export default function App() {
         {/* Tab 1: Discover / Recommended Shelf */}
         {activeTab === 'discover' && (
           <div>
-            <div className="hero-banner glass-panel" style={{ marginBottom: '2rem' }}>
+            <div className="hero-banner glass-panel">
               <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '9999px', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-gold)', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '9999px', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-gold)', fontSize: '0.78rem', fontWeight: 700, marginBottom: '0.65rem' }}>
                   <Sparkles size={14} /> Hybrid AI Engine (FM v2 + SVD++)
                 </div>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+                <h2 className="hero-title">
                   Recommended For You in <span style={{ color: 'var(--accent-gold)' }}>{session?.country}</span>
                 </h2>
-                <p style={{ color: 'var(--text-secondary)', maxWidth: '650px', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                <p className="hero-desc">
                   Recommendations are dynamically calibrated to your region's Hofstede cultural dimensions. Rate books below to refine your cultural taste profile in real-time.
                 </p>
               </div>
@@ -277,9 +277,9 @@ export default function App() {
               <button 
                 onClick={() => handleOnboard(session?.country || 'Nigeria')}
                 className="nav-btn active"
-                style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                style={{ padding: '0.75rem 1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}
               >
-                <RotateCw size={16} className={loading ? "animate-spin" : ""} /> Refresh Shelf
+                <RotateCw size={15} className={loading ? "animate-spin" : ""} /> Refresh Shelf
               </button>
             </div>
 
@@ -299,15 +299,15 @@ export default function App() {
         {/* Tab 2: Search Catalog */}
         {activeTab === 'search' && (
           <div>
-            <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)', marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+            <div className="search-card glass-panel">
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>
                 Search 15,000+ Book Catalog
               </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
                 Search by book title, author, or genre. Every search result displays your real-time predicted rating and cultural affinity match.
               </p>
 
-              <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem' }}>
+              <form onSubmit={handleSearch} className="search-form-row">
                 <div style={{ flex: 1, position: 'relative' }}>
                   <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
@@ -317,20 +317,21 @@ export default function App() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '0.85rem 1rem 0.85rem 2.75rem',
+                      padding: '0.8rem 1rem 0.8rem 2.6rem',
                       borderRadius: 'var(--radius-md)',
                       background: 'rgba(15, 23, 42, 0.8)',
                       border: '1px solid var(--border-color)',
                       color: 'var(--text-primary)',
-                      fontSize: '0.95rem',
-                      outline: 'none'
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
                 <button
                   type="submit"
                   className="nav-btn active"
-                  style={{ padding: '0.85rem 1.75rem', fontSize: '0.95rem' }}
+                  style={{ padding: '0.8rem 1.6rem', fontSize: '0.9rem', flexShrink: 0 }}
                 >
                   {isSearching ? 'Searching...' : 'Search'}
                 </button>
@@ -352,17 +353,17 @@ export default function App() {
 
         {/* Tab 3: Cultural Radar & Hofstede Profile */}
         {activeTab === 'radar' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.2fr', gap: '2rem' }}>
+          <div className="radar-grid">
             {/* Left: Radar Chart */}
-            <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', alignSelf: 'flex-start' }}>
+            <div className="radar-chart-card glass-panel">
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.4rem', alignSelf: 'flex-start' }}>
                 Dynamic Cultural Radar
               </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', alignSelf: 'flex-start' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', alignSelf: 'flex-start' }}>
                 Visualizing your 6 Hofstede cultural dimension scores (0–100). As you rate books, this profile evolves.
               </p>
 
-              <div style={{ width: '100%', maxWidth: '420px', height: '380px' }}>
+              <div className="radar-chart-wrapper">
                 {radarChartData && (
                   <Radar 
                     data={radarChartData} 
@@ -389,18 +390,18 @@ export default function App() {
             </div>
 
             {/* Right: Dimension Deep Dive Breakdown */}
-            <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>
+            <div className="radar-breakdown-card glass-panel">
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem' }}>
                 Hofstede Dimensions Breakdown
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                 {session?.cultural_profile && Object.entries(session.cultural_profile.labels || {}).map(([key, label]) => {
                   const val = session.cultural_profile[key] || 50;
                   return (
-                    <div key={key} style={{ padding: '0.85rem', borderRadius: 'var(--radius-md)', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--border-color)' }}>
+                    <div key={key} style={{ padding: '0.8rem 1rem', borderRadius: 'var(--radius-md)', background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--border-color)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{label}</span>
-                        <strong style={{ color: 'var(--accent-gold)', fontSize: '0.9rem' }}>{val}/100</strong>
+                        <span style={{ fontSize: '0.825rem', fontWeight: 600 }}>{label}</span>
+                        <strong style={{ color: 'var(--accent-gold)', fontSize: '0.875rem' }}>{val}/100</strong>
                       </div>
                       <div style={{ width: '100%', height: '6px', background: '#334155', borderRadius: '9999px', overflow: 'hidden' }}>
                         <div style={{ width: `${val}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent-gold), var(--accent-cyan))', transition: 'width 0.4s ease' }} />
@@ -415,18 +416,18 @@ export default function App() {
 
         {/* Tab 4: User Rated History */}
         {activeTab === 'history' && (
-          <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+          <div className="glass-panel" style={{ padding: '1.75rem', borderRadius: 'var(--radius-lg)' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.4rem' }}>
               Your Rated Books History
             </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
               Every rating recalibrates your hybrid model weights in real time.
             </p>
 
             {(!session?.history || session.history.length === 0) ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <BookOpen size={48} style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
-                <p>You have not rated any books yet.</p>
+              <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <BookOpen size={44} style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
+                <p style={{ fontSize: '0.9rem' }}>You have not rated any books yet.</p>
                 <button 
                   onClick={() => setActiveTab('discover')} 
                   className="nav-btn active"
@@ -436,15 +437,15 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {session.history.map((h, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderRadius: 'var(--radius-md)', background: 'rgba(15, 23, 42, 0.7)', border: '1px solid var(--border-color)' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{h.title || `Book ID #${h.book_id}`}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rated at {h.time}</div>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', background: 'rgba(15, 23, 42, 0.7)', border: '1px solid var(--border-color)', gap: '0.75rem' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.title || `Book ID #${h.book_id}`}</div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>Rated at {h.time}</div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-gold)', fontWeight: 700 }}>
-                      <Star size={16} fill="var(--accent-gold)" /> {h.rating}★
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>
+                      <Star size={15} fill="var(--accent-gold)" /> {h.rating}★
                     </div>
                   </div>
                 ))}
