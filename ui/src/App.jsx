@@ -18,7 +18,7 @@ import { Radar } from 'react-chartjs-2';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:8000/api" : "/api");
 
 const POPULAR_AFRICAN_COUNTRIES = [
   "Nigeria", "South Africa", "Kenya", "Ghana", "Egypt", 

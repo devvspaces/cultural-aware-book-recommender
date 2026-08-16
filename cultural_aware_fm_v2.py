@@ -65,7 +65,10 @@ class CulturallyAwareFMv2:
         # Dimensions
         self.num_users = 0
         self.num_books = 0
-        self.num_continuous = 20 # 6 + 6 + 1 + 1 + 6
+        self.num_continuous = 20
+        self.hofstede_offset = 0
+        self.total_features = 0
+        self.is_fitted = False
         self.d = 0 # total features dimension
         
     def load_hofstede_csv(self, file_path):

@@ -15,6 +15,7 @@ Endpoints:
 import os
 import sys
 import time
+import json
 import uuid
 import numpy as np
 import pandas as pd
@@ -23,10 +24,12 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
+from surprise import dump
 
 # Base paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PROJECT_DIR = os.path.join(BASE_DIR, "project")
+API_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(API_DIR) # project directory
+BASE_DIR = os.path.dirname(PROJECT_DIR) # repository root directory
 GOODREADS_DIR = os.path.join(BASE_DIR, "goodreads")
 sys.path.append(PROJECT_DIR)
 
@@ -117,61 +120,116 @@ def load_data_and_models():
     DATA_STATE["country_list"] = country_list
     print(f"Loaded {len(country_list)} Hofstede country profiles.")
     
-    # 2. Load Book ID mappings
-    df_map = pd.read_csv(book_id_map_path)
-    df_map['book_id'] = df_map['book_id'].astype(str)
-    book_id_str_to_csv = dict(zip(df_map['book_id'], df_map['book_id_csv']))
+    # 2. Check for Pre-Serialized Artifacts (Fast Cloud Mode)
+    artifacts_catalog = os.path.join(PROJECT_DIR, "artifacts", "books_catalog.json")
+    artifacts_fm_weights = os.path.join(PROJECT_DIR, "artifacts", "fm_v2_weights.npz")
+    artifacts_svd = os.path.join(PROJECT_DIR, "artifacts", "svd_model.pkl")
     
-    # 3. Load Books (50,000 catalog for rich exploration)
-    authors_map = gcr.load_authors(authors_path)
-    genres_map = gcr.load_genres(genres_path)
-    raw_books = gcr.load_books_dataset(books_path, authors_map, genres_map, limit=50000)
-    
-    filtered_books = []
-    book_csv_ids_set = set()
-    for b in raw_books:
-        s_id = b["book_id"]
-        if s_id in book_id_str_to_csv:
-            csv_id = book_id_str_to_csv[s_id]
-            b["book_id_csv"] = csv_id
-            filtered_books.append(b)
-            book_csv_ids_set.add(csv_id)
+    if os.path.exists(artifacts_catalog) and os.path.exists(artifacts_fm_weights):
+        print("\n⚡ FAST CLOUD MODE: Loading pre-trained models and catalog from artifacts/...")
+        with open(artifacts_catalog, 'r', encoding='utf-8') as f:
+            books = json.load(f)
             
-    books = filtered_books
-    book_id_to_idx = {b['book_id']: idx for idx, b in enumerate(books)}
-    book_csv_to_idx = {b['book_id_csv']: idx for idx, b in enumerate(books)}
-    DATA_STATE["books"] = books
-    DATA_STATE["book_id_to_idx"] = book_id_to_idx
-    DATA_STATE["book_csv_to_idx"] = book_csv_to_idx
-    print(f"Loaded {len(books):,} books.")
-    
-    # 4. Load interactions and fit Hybrid Engine
-    ratings = []
-    for chunk in pd.read_csv(interactions_path, chunksize=100000):
-        filtered = chunk[(chunk['book_id'].isin(book_csv_ids_set)) & (chunk['rating'] > 0)]
-        for _, row in filtered.iterrows():
-            ratings.append({
-                'user_id': int(row['user_id']),
-                'book_id': int(row['book_id']),
-                'rating': float(row['rating'])
-            })
+        book_id_to_idx = {b['book_id']: idx for idx, b in enumerate(books)}
+        DATA_STATE["books"] = books
+        DATA_STATE["book_id_to_idx"] = book_id_to_idx
+        print(f"Loaded {len(books):,} preprocessed books.")
+        
+        # Initialize and restore Hybrid Recommender
+        hybrid = HybridRecommender(alpha=0.80, threshold_t=1, fm_factors=10, svd_factors=10)
+        hybrid.load_hofstede_csv(hofstede_path)
+        hybrid.books = books
+        hybrid.book_id_to_idx = book_id_to_idx
+        
+        # Load weights
+        npz = np.load(artifacts_fm_weights)
+        hybrid.fm_v2.w0 = float(npz['w0'])
+        hybrid.fm_v2.w = npz['w']
+        hybrid.fm_v2.V = npz['V']
+        hybrid.fm_v2.global_average_hofstede = npz['global_average_hofstede']
+        
+        config_path = os.path.join(PROJECT_DIR, "artifacts", "recommender_config.json")
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                cfg = json.load(f)
+            hybrid.fm_v2.num_users = cfg.get("num_users", 5951)
+            hybrid.fm_v2.num_books = cfg.get("num_books", len(books))
+            hybrid.fm_v2.num_continuous = cfg.get("num_continuous", 20)
+        else:
+            hybrid.fm_v2.num_users = len(hybrid.fm_v2.w) - len(books) - 20
+            hybrid.fm_v2.num_books = len(books)
+            hybrid.fm_v2.num_continuous = 20
+            
+        hybrid.fm_v2.hofstede_offset = hybrid.fm_v2.num_users + hybrid.fm_v2.num_books
+        hybrid.fm_v2.total_features = hybrid.fm_v2.hofstede_offset + hybrid.fm_v2.num_continuous
+        hybrid.fm_v2.is_fitted = True
+        
+        # Load SVD++
+        if os.path.exists(artifacts_svd):
+            _, loaded_svd = dump.load(artifacts_svd)
+            hybrid.svd_model.model = loaded_svd
+        
+        # Compute book cultural vectors
+        hybrid.book_vectors = [
+            hybrid.fm_v2.get_book_hofstede(b) for b in books
+        ]
+        hybrid.is_fitted = True
+        DATA_STATE["hybrid_model"] = hybrid
+        print("✓ Pre-trained Hybrid Recommender restored in <2 seconds!")
+        return
+        
+    # 3. Fallback to Raw Data Parsing (if raw files exist)
+    if os.path.exists(book_id_map_path) and os.path.exists(books_path):
+        df_map = pd.read_csv(book_id_map_path)
+        df_map['book_id'] = df_map['book_id'].astype(str)
+        book_id_str_to_csv = dict(zip(df_map['book_id'], df_map['book_id_csv']))
+        
+        authors_map = gcr.load_authors(authors_path)
+        genres_map = gcr.load_genres(genres_path)
+        raw_books = gcr.load_books_dataset(books_path, authors_map, genres_map, limit=50000)
+        
+        filtered_books = []
+        book_csv_ids_set = set()
+        for b in raw_books:
+            s_id = b["book_id"]
+            if s_id in book_id_str_to_csv:
+                csv_id = book_id_str_to_csv[s_id]
+                b["book_id_csv"] = csv_id
+                filtered_books.append(b)
+                book_csv_ids_set.add(csv_id)
+                
+        books = filtered_books
+        book_id_to_idx = {b['book_id']: idx for idx, b in enumerate(books)}
+        book_csv_to_idx = {b['book_id_csv']: idx for idx, b in enumerate(books)}
+        DATA_STATE["books"] = books
+        DATA_STATE["book_id_to_idx"] = book_id_to_idx
+        DATA_STATE["book_csv_to_idx"] = book_csv_to_idx
+        
+        ratings = []
+        for chunk in pd.read_csv(interactions_path, chunksize=100000):
+            filtered = chunk[(chunk['book_id'].isin(book_csv_ids_set)) & (chunk['rating'] > 0)]
+            for _, row in filtered.iterrows():
+                ratings.append({
+                    'user_id': int(row['user_id']),
+                    'book_id': int(row['book_id']),
+                    'rating': float(row['rating'])
+                })
+                if len(ratings) >= 50000:
+                    break
             if len(ratings) >= 50000:
                 break
-        if len(ratings) >= 50000:
-            break
-            
-    df_ratings = pd.DataFrame(ratings)
-    unique_users = df_ratings['user_id'].unique()
-    user_to_idx = {orig_u: idx for idx, orig_u in enumerate(unique_users)}
-    df_ratings['user_idx'] = df_ratings['user_id'].map(user_to_idx)
-    df_ratings['book_idx'] = df_ratings['book_id'].map(book_csv_to_idx)
-    
-    hybrid = HybridRecommender(alpha=0.80, threshold_t=1, fm_factors=10, svd_factors=10, epochs=6)
-    hybrid.load_hofstede_csv(hofstede_path)
-    hybrid.fit(df_ratings, books, book_csv_to_idx)
-    
-    DATA_STATE["hybrid_model"] = hybrid
-    print("\n✓ FASTAPI SERVER INITIALIZATION COMPLETE — READY FOR TRAFFIC!")
+                
+        df_ratings = pd.DataFrame(ratings)
+        unique_users = df_ratings['user_id'].unique()
+        user_to_idx = {orig_u: idx for idx, orig_u in enumerate(unique_users)}
+        df_ratings['user_idx'] = df_ratings['user_id'].map(user_to_idx)
+        df_ratings['book_idx'] = df_ratings['book_id'].map(book_csv_to_idx)
+        
+        hybrid = HybridRecommender(alpha=0.80, threshold_t=1, fm_factors=10, svd_factors=10, epochs=6)
+        hybrid.load_hofstede_csv(hofstede_path)
+        hybrid.fit(df_ratings, books, book_csv_to_idx)
+        DATA_STATE["hybrid_model"] = hybrid
+        print("\n✓ FASTAPI SERVER INITIALIZATION COMPLETE — READY FOR TRAFFIC!")
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 def format_cultural_profile_dict(vector: np.ndarray) -> Dict[str, Any]:

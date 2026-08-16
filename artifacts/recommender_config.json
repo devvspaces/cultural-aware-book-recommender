@@ -1,0 +1,9 @@
+{
+  "alpha": 0.8,
+  "threshold_T": 1,
+  "num_factors": 10,
+  "num_users": 5951,
+  "num_books": 50000,
+  "num_continuous": 20,
+  "export_timestamp": "2026-08-16 13:39:18"
+}
